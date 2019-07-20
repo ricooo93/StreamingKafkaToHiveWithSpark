@@ -12,7 +12,12 @@ spark = SparkSession.builder.appName('StreamingFromKafkaToHive').enableHiveSuppo
 consumer = KafkaConsumer('test',group_id = 'newgroup', bootstrap_servers='localhost:6667')
 #read the message
 for msg in consumer:
+    #decode the message
     message = msg.value.decode('utf-8')
+    print(message)
+    #create dataframe from json file
     df = spark.createDataFrame([Row(json=message)])
     new_df = spark.read.json(df.rdd.map(lambda r: r.json))
-    new_df.printSchema()
+    #create temptable and write to hive
+    new_df.createOrReplaceTempView("tempTable")
+    sqlContext.sql("insert into table tweets select * from tempTable")
